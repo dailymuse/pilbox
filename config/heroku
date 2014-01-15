@@ -1,0 +1,43 @@
+# Heroku settings
+
+import os
+
+port = int(os.environ.get("PORT", "8000"))
+
+# Set client name and key if the application requires signed requests. The
+# client must sign the request using the client_key, see README for
+# instructions.
+if "PILBOX_CLIENT_NAME" in os.environ and "PILBOX_CLIENT_KEY" in os.environ:
+    client_name = os.environ["PILBOX_CLIENT_NAME"]
+    client_key = os.environ["PILBOX_CLIENT_KEY"]
+
+# Set the allowed hosts as an alternative to signed requests. Only those images
+# which are served from the following hosts will be requested.
+if "PILBOX_ALLOWED_HOSTS" in os.environ:
+    allowed_hosts = os.environ["PILBOX_ALLOWED_HOSTS"]
+
+# Request related settings
+if "PILBOX_MAX_REQUESTS" in os.environ:
+    max_requests = os.environ["PILBOX_MAX_REQUESTS"]
+
+if "PILBOX_TIMEOUT" in os.environ:
+    timeout = os.environ["PILBOX_TIMEOUT"]
+
+# Set default resizing options
+if "PILBOX_BACKGROUND" in os.environ:
+    background = os.environ["PILBOX_BACKGROUND"]
+
+if "PILBOX_FILTER" in os.environ:
+    filter = os.environ["PILBOX_FILTER"]
+
+if "PILBOX_FORMAT" in os.environ:
+    formatos.environ["PILBOX_FORMAT"]
+
+if "PILBOX_MODE" in os.environ:
+    mode = os.environ["PILBOX_MODE"]
+
+if "PILBOX_POSITION" in os.environ:
+    position = os.environ["PILBOX_POSITION"]
+
+if "PILBOX_QUALITY" in os.environ:
+    qualityos.environ["PILBOX_QUALITY"]
