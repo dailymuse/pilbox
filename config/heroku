@@ -42,5 +42,5 @@ if "PILBOX_POSITION" in os.environ:
 if "PILBOX_QUALITY" in os.environ:
     quality = os.environ["PILBOX_QUALITY"]
 
-if "PILBOX_IMPLICIT_HOST" in os.environ:
-    implicit_host = os.environ["PILBOX_IMPLICIT_HOST"]
+if "PILBOX_IMPLICIT_BASE_URL" in os.environ:
+    implicit_base_url = os.environ["PILBOX_IMPLICIT_BASE_URL"]
