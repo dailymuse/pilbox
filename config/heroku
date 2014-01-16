@@ -31,7 +31,7 @@ if "PILBOX_FILTER" in os.environ:
     filter = os.environ["PILBOX_FILTER"]
 
 if "PILBOX_FORMAT" in os.environ:
-    formatos.environ["PILBOX_FORMAT"]
+    format = os.environ["PILBOX_FORMAT"]
 
 if "PILBOX_MODE" in os.environ:
     mode = os.environ["PILBOX_MODE"]
@@ -40,4 +40,4 @@ if "PILBOX_POSITION" in os.environ:
     position = os.environ["PILBOX_POSITION"]
 
 if "PILBOX_QUALITY" in os.environ:
-    qualityos.environ["PILBOX_QUALITY"]
+    quality = os.environ["PILBOX_QUALITY"]
