@@ -145,7 +145,7 @@ class _DelayedHandler(tornado.web.RequestHandler):
 
 class AppTest(AsyncHTTPTestCase, _AppAsyncMixin):
     def get_app(self):
-        return _PilboxTestApplication()
+        return _PilboxTestApplication(timeout=10.0)
 
     def test_missing_url(self):
         qs = urlencode(dict(w=1, h=1))
@@ -335,7 +335,6 @@ class AppImplicitBaseUrlTest(AsyncHTTPTestCase, _AppAsyncMixin):
 
     def test_path(self):
         url_path = "/test/data/test1.jpg"
-        url = self.get_url(url_path)
         qs = urlencode(dict(url=url_path, op="noop"))
         resp = self.fetch_success("/?%s" % qs)
         expected_path = os.path.join(
@@ -343,6 +342,13 @@ class AppImplicitBaseUrlTest(AsyncHTTPTestCase, _AppAsyncMixin):
         msg = "/?%s does not match %s" % (qs, expected_path)
         with open(expected_path, "rb") as expected:
             self.assertEqual(resp.buffer.read(), expected.read(), msg)
+
+    def test_invalid_protocol(self):
+        path = os.path.join(os.path.dirname(__file__), "data", "test1.jpg")
+        qs = urlencode(dict(url="file://%s" % path, w=1, h=1))
+        resp = self.fetch_error(400, "/?%s" % qs)
+        self.assertEqual(resp.get("error_code"), errors.UrlError.get_code())
+
 
 class AppRestrictedTest(AsyncHTTPTestCase, _AppAsyncMixin):
     KEY = "abcdef"
@@ -352,7 +358,8 @@ class AppRestrictedTest(AsyncHTTPTestCase, _AppAsyncMixin):
         return _PilboxTestApplication(
             client_name=self.NAME,
             client_key=self.KEY,
-            allowed_hosts=["foo.co", "bar.io", "localhost"])
+            allowed_hosts=["foo.co", "bar.io", "localhost"],
+            timeout=10.0)
 
     def test_missing_client_name(self):
         params = dict(url="http://foo.co/x.jpg", w=1, h=1)
