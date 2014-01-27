@@ -33,9 +33,9 @@ from pilbox.image import Image
 from pilbox.signature import verify_signature
 
 try:
-    from urlparse import urlparse
+    from urlparse import urlparse, urljoin
 except ImportError:
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse, urljoin
 
 
 # general settings
@@ -52,6 +52,7 @@ define("allowed_hosts", help="list of valid hosts", default=[], multiple=True)
 # request related settings
 define("max_requests", help="max concurrent requests", type=int, default=40)
 define("timeout", help="request timeout in seconds", type=float, default=10)
+define("implicit_base_url", help="prepend protocol/host to url paths")
 
 # default image option settings
 define("background", help="default hexadecimal bg color (RGB or ARGB)")
@@ -80,7 +81,8 @@ class PilboxApplication(tornado.web.Application):
                         position=options.position,
                         quality=options.quality,
                         max_requests=options.max_requests,
-                        timeout=options.timeout)
+                        timeout=options.timeout,
+                        implicit_base_url=options.implicit_base_url)
         settings.update(kwargs)
         tornado.web.Application.__init__(self, self.get_handlers(), **settings)
 
@@ -102,12 +104,16 @@ class ImageHandler(tornado.web.RequestHandler):
     def get(self):
         self._validate_request()
 
+        url = self.get_argument("url")
+        if self.settings.get("implicit_base_url") \
+                and urlparse(url).hostname is None:
+            url = urljoin(self.settings.get("implicit_base_url"), url)
+
         client = tornado.httpclient.AsyncHTTPClient(
             max_clients=self.settings.get("max_requests"))
         try:
             resp = yield client.fetch(
-                self.get_argument("url"),
-                request_timeout=self.settings.get("timeout"))
+                url, request_timeout=self.settings.get("timeout"))
         except (socket.gaierror, tornado.httpclient.HTTPError) as e:
             logger.warn("Fetch error for %s: %s"
                         % (self.get_argument("url"), str(e)))
@@ -227,11 +233,14 @@ class ImageHandler(tornado.web.RequestHandler):
             raise errors.OperationError("Unsupported operation")
 
     def _validate_url(self):
-        if not self.get_argument("url"):
+        url = self.get_argument("url")
+        if not url:
             raise errors.UrlError("Missing url")
-        elif not self.get_argument("url").startswith("http://") \
-                and not self.get_argument("url").startswith("https://"):
-            raise errors.UrlError("Unsupported protocol")
+        elif url.startswith("http://") or url.startswith("https://"):
+            return
+        elif self.settings.get("implicit_base_url") and url.startswith("/"):
+            return
+        raise errors.UrlError("Unsupported protocol")
 
     def _validate_client(self):
         client = self.settings.get("client_name")
