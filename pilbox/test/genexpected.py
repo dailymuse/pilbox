@@ -14,11 +14,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import sys
 import textwrap
 
 from . import image_test
 from ..image import Image
+
+logging.basicConfig()
 
 
 def main():
@@ -42,9 +45,12 @@ def main():
             img = Image(f).resize(
                 case["width"], case["height"], mode=case["mode"],
                 background=case.get("background"), filter=case.get("filter"),
-                position=case.get("position"))
+                position=case.get("position"), retain=case.get("retain"))
             rv = img.save(
-                format=case.get("format"), quality=case.get("quality"))
+                format=case.get("format"),
+                optimize=case.get("optimize"),
+                progressive=case.get("progressive"),
+                quality=case.get("quality"))
 
             with open(case["expected_path"], "wb") as expected:
                 expected.write(rv.read())
@@ -58,11 +64,13 @@ def main():
                 case["degree"], expand=case.get("expand"),
                 filter=case.get("filter"))
             rv = img.save(
-                format=case.get("format"), quality=case.get("quality"))
+                format=case.get("format"),
+                optimize=case.get("optimize"),
+                progressive=case.get("progressive"),
+                quality=case.get("quality"))
 
             with open(case["expected_path"], "wb") as expected:
                 expected.write(rv.read())
-
 
     cases = image_test.get_image_region_cases()
     for case in cases:
@@ -71,11 +79,13 @@ def main():
             print "Generating %s" % case["expected_path"]
             img = Image(f).region(case["rect"].split(","))
             rv = img.save(
-                format=case.get("format"), quality=case.get("quality"))
+                format=case.get("format"),
+                optimize=case.get("optimize"),
+                progressive=case.get("progressive"),
+                quality=case.get("quality"))
 
             with open(case["expected_path"], "wb") as expected:
                 expected.write(rv.read())
-
 
     cases = image_test.get_image_chained_cases()
     for case in cases:
@@ -92,6 +102,17 @@ def main():
                     img.region(case["rect"].split(","))
 
             rv = img.save()
+            with open(case["expected_path"], "wb") as expected:
+                expected.write(rv.read())
+
+    cases = image_test.get_image_exif_cases()
+    for case in cases:
+        with open(case["source_path"], "rb") as f:
+
+            print "Generating %s" % case["expected_path"]
+            img = Image(f).resize(case["width"], case["height"])
+            rv = img.save(preserve_exif=case['preserve_exif'])
+
             with open(case["expected_path"], "wb") as expected:
                 expected.write(rv.read())
 

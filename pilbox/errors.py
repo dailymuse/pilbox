@@ -96,6 +96,30 @@ class RectangleError(BadRequestError):
         return 11
 
 
+class OptimizeError(BadRequestError):
+    @staticmethod
+    def get_code():
+        return 12
+
+
+class PreserveExifError(BadRequestError):
+    @staticmethod
+    def get_code():
+        return 15
+
+
+class ProgressiveError(BadRequestError):
+    @staticmethod
+    def get_code():
+        return 13
+
+
+class RetainError(BadRequestError):
+    @staticmethod
+    def get_code():
+        return 14
+
+
 class FetchError(PilboxError):
     def __init__(self, msg=None, *args, **kwargs):
         super(FetchError, self).__init__(404, msg, *args, **kwargs)
@@ -137,3 +161,9 @@ class ImageFormatError(UnsupportedError):
     @staticmethod
     def get_code():
         return 201
+
+
+class ImageSaveError(UnsupportedError):
+    @staticmethod
+    def get_code():
+        return 202
