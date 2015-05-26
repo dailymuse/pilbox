@@ -45,6 +45,12 @@ _positions_to_ratios = {
     "bottom-right": (1.0, 1.0), "face": None
     }
 
+_orientation_to_rotation = {
+    3: 180,
+    6: 90,
+    8: 270
+    }
+
 _filters_to_pil = {
     "antialias": PIL.Image.ANTIALIAS,
     "bicubic": PIL.Image.BICUBIC,
@@ -53,6 +59,7 @@ _filters_to_pil = {
     }
 
 _formats_to_pil = {
+    "gif": "GIF",
     "jpg": "JPEG",
     "jpeg": "JPEG",
     "png": "PNG",
@@ -63,18 +70,27 @@ _formats_to_pil = {
 class Image(object):
     FILTERS = _filters_to_pil.keys()
     FORMATS = _formats_to_pil.keys()
-    MODES = ["clip", "crop", "fill", "scale"]
+    MODES = ["adapt", "clip", "crop", "fill", "scale"]
     POSITIONS = _positions_to_ratios.keys()
 
     _DEFAULTS = dict(background="fff", expand=False, filter="antialias",
-                     format=None, mode="crop", position="center", quality=90)
+                     format=None, mode="crop", optimize=False,
+                     position="center", quality=90, progressive=False,
+                     retain=75, preserve_exif=False)
     _CLASSIFIER_PATH = os.path.join(
         os.path.dirname(__file__), "frontalface.xml")
 
     def __init__(self, stream):
         self.stream = stream
 
-        self.img = PIL.Image.open(self.stream)
+        try:
+            self.img = PIL.Image.open(self.stream)
+        except IOError:
+            raise errors.ImageFormatError("File is not an image")
+
+        # Cache original Exif data, since it can be erased by some operations
+        self._exif = self.img.info.get('exif', b'')
+
         if self.img.format.lower() not in self.FORMATS:
             raise errors.ImageFormatError(
                 "Unknown format: %s" % self.img.format)
@@ -93,6 +109,8 @@ class Image(object):
     def validate_degree(deg):
         if deg is None or deg == "":
             raise errors.DegreeError("Missing degree")
+        elif deg == "auto":
+            return
         elif not Image._isint(deg):
             raise errors.DegreeError("Invalid degree: %s" % deg)
         elif int(deg) < 0 or int(deg) >= 360:
@@ -128,10 +146,26 @@ class Image(object):
                 or len(opts["background"]) not in [3, 4, 6, 8]:
             raise errors.BackgroundError(
                 "Invalid background: %s" % opts["background"])
-        elif not Image._isint(opts["quality"]) \
-                or int(opts["quality"]) > 100 or int(opts["quality"]) < 0:
+        elif opts["optimize"] and not Image._isint(opts["optimize"]):
+            raise errors.OptimizeError(
+                "Invalid optimize: %s", str(opts["optimize"]))
+        elif opts["quality"] != "keep" and \
+            (not Image._isint(opts["quality"]) or
+             int(opts["quality"]) > 100 or
+             int(opts["quality"]) < 0):
             raise errors.QualityError(
                 "Invalid quality: %s", str(opts["quality"]))
+        elif opts["preserve_exif"] and not Image._isint(opts["preserve_exif"]):
+            raise errors.PreserveExifError(
+                "Invalid preserve_exif: %s" % str(opts["preserve_exif"]))
+        elif opts["progressive"] and not Image._isint(opts["progressive"]):
+            raise errors.ProgressiveError(
+                "Invalid progressive: %s", str(opts["progressive"]))
+        elif (not Image._isint(opts["retain"]) or
+              int(opts["retain"]) > 100 or
+              int(opts["retain"]) < 0):
+            raise errors.RetainError(
+                "Invalid retain: %s" % str(opts["retain"]))
 
     def region(self, rect):
         """ Selects a sub-region of the image using the supplied rectangle,
@@ -140,7 +174,7 @@ class Image(object):
         box = (int(rect[0]), int(rect[1]), int(rect[0]) + int(rect[2]),
                int(rect[1]) + int(rect[3]))
         if box[2] > self.img.size[0] or box[3] > self.img.size[1]:
-            raise errors.RectangleError('Region out-of-bounds')
+            raise errors.RectangleError("Region out-of-bounds")
         self.img = self.img.crop(box)
         return self
 
@@ -153,10 +187,14 @@ class Image(object):
         background - The hexadecimal background fill color, RGB or ARGB
         position - The position used to crop: see Image.POSITIONS for
                    pre-defined positions or a custom position ratio
+        retain - The minimum percentage of the original image to retain
+                 when cropping
         """
         opts = Image._normalize_options(kwargs)
         size = self._get_size(width, height)
-        if opts["mode"] == "clip":
+        if opts["mode"] == "adapt":
+            self._adapt(size, opts)
+        elif opts["mode"] == "clip":
             self._clip(size, opts)
         elif opts["mode"] == "fill":
             self._fill(size, opts)
@@ -173,6 +211,18 @@ class Image(object):
         expand - Expand the output image to fit rotation
         """
         opts = Image._normalize_options(kwargs)
+
+        if deg == "auto":
+            if self._orig_format == "JPEG":
+                try:
+                    exif = self.img._getexif() or dict()
+                    deg = _orientation_to_rotation.get(exif.get(274, 0), 0)
+                except Exception:
+                    logger.warn('unable to parse exif')
+                    deg = 0
+            else:
+                deg = 0
+
         expand = False if int(deg) % 90 == 0 else bool(int(opts["expand"]))
         self.img = self.img.rotate(360 - int(deg), expand=expand)
         return self
@@ -182,6 +232,9 @@ class Image(object):
         following optional keyword arguments:
 
         format - The format to save as: see Image.FORMATS
+        optimize - The image file size should be optimized
+        preserve_exif - Preserve the Exif information in JPEGs
+        progressive - The output should be progressive JPEG
         quality - The quality used to save JPEGs: integer from 1 - 100
         """
         opts = Image._normalize_options(kwargs)
@@ -190,10 +243,47 @@ class Image(object):
             fmt = opts["pil"]["format"]
         else:
             fmt = self._orig_format
-        self.img.save(outfile, fmt, quality=int(opts["quality"]))
+        save_kwargs = dict()
+
+        if Image._isint(opts["quality"]):
+            save_kwargs["quality"] = int(opts["quality"])
+
+        if int(opts["optimize"]):
+            save_kwargs["optimize"] = True
+
+        if int(opts["progressive"]):
+            save_kwargs["progressive"] = True
+
+        if int(opts["preserve_exif"]):
+            save_kwargs["exif"] = self._exif
+
+        if self._orig_format == "JPEG":
+            self.img.format = self._orig_format
+            save_kwargs["subsampling"] = "keep"
+            if opts["quality"] == "keep":
+                save_kwargs["quality"] = "keep"
+
+        try:
+            self.img.save(outfile, fmt, **save_kwargs)
+        except IOError as e:
+            raise errors.ImageSaveError(str(e))
+        self.img.format = fmt
         outfile.seek(0)
 
         return outfile
+
+    def _adapt(self, size, opts):
+        source_aspect_ratio = float(self.img.size[0]) / float(self.img.size[1])
+        aspect_ratio = float(size[0]) / float(size[1])
+        if source_aspect_ratio >= aspect_ratio:
+            retain = (aspect_ratio / source_aspect_ratio) * 100.0
+        else:
+            retain = (source_aspect_ratio / aspect_ratio) * 100.0
+
+        if float(opts["retain"]) <= retain:
+            self._crop(size, opts)
+        else:
+            self._fill(size, opts)
 
     def _clip(self, size, opts):
         self.img.thumbnail(size, opts["pil"]["filter"])
@@ -298,7 +388,8 @@ class Image(object):
     @staticmethod
     def _isint(v, base=10):
         try:
-            int(str(v), base)
+            if type(v) is not bool:
+                int(str(v), base)
         except ValueError:
             return False
         return True
@@ -342,7 +433,11 @@ def main():
     define("rect", help="rectangle: x,y,w,h", type=str)
     define("format", help="default format to use when saving",
            metavar="|".join(Image.FORMATS), type=str)
-    define("quality", help="default jpeg quality, 0-100", type=int)
+    define("optimize", help="default to optimize when saving", type=int)
+    define("progressive", help="default to progressive when saving", type=int)
+    define("quality", help="default jpeg quality, 1-99 or keep")
+    define("retain", help="default adaptive retain percent, 1-99", type=int)
+    define("preserve_exif", help="default behavior for Exif data", type=int)
 
     args = parse_command_line()
     if not args:
@@ -374,13 +469,17 @@ def main():
     if options.operation == "resize":
         image.resize(options.width, options.height, mode=options.mode,
                      filter=options.filter, background=options.background,
-                     position=options.position)
+                     position=options.position, retain=options.retain)
     elif options.operation == "rotate":
         image.rotate(options.degree, expand=options.expand)
     elif options.operation == "region":
         image.region(options.rect.split(","))
 
-    stream = image.save(format=options.format, quality=options.quality)
+    stream = image.save(format=options.format,
+                        optimize=options.optimize,
+                        quality=options.quality,
+                        progressive=options.progressive,
+                        preserve_exif=options.preserve_exif)
     sys.stdout.write(stream.read())
     stream.close()
 

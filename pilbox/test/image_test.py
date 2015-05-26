@@ -56,6 +56,16 @@ def get_image_rotate_cases():
     for criteria in criteria_combinations:
         cases.append(_criteria_to_rotate_case("test1.jpg", criteria))
 
+
+    criteria_combinations = _make_combinations(
+        [dict(values=[["auto"], [0]], fields=["degree", "expand"])])
+
+    for criteria in criteria_combinations:
+        cases.append(_criteria_to_rotate_case("test-orientation.jpg", criteria))
+        cases.append(_criteria_to_rotate_case("test-bad-exif.jpg", criteria))
+        cases.append(_criteria_to_rotate_case("test1.jpg", criteria))
+        cases.append(_criteria_to_rotate_case("test2.png", criteria))
+
     return list(filter(bool, cases))
 
 
@@ -101,6 +111,21 @@ def get_image_chained_cases():
     return list(filter(bool, cases))
 
 
+def get_image_exif_cases():
+    """Returns a list of test cases of the form:
+    [dict(source_path, expected_path, preserve_exif, ...), ...]
+    """
+    criteria_combinations = _make_combinations(
+        [dict(values=[[1, 0], [300], [300]],
+              fields=["preserve_exif", "width", "height"])])
+
+    cases = []
+    for criteria in criteria_combinations:
+        cases.append(_criteria_to_exif_case("test-orientation.jpg", criteria))
+
+    return list(filter(bool, cases))
+
+
 class ImageTest(unittest.TestCase):
 
     def test_resize(self):
@@ -120,6 +145,10 @@ class ImageTest(unittest.TestCase):
     def test_chained(self):
         for case in get_image_chained_cases():
             self._assert_expected_chained(case)
+
+    def test_exif(self):
+        for case in get_image_exif_cases():
+            self._assert_expected_exif(case)
 
     @unittest.skipIf(cv is None, "OpenCV is not installed")
     def test_face_crop_resize(self):
@@ -175,12 +204,17 @@ class ImageTest(unittest.TestCase):
         Image.validate_options(dict())
 
     def test_valid_default_options_with_empty_values(self):
-        opts = dict(mode=None, filter=None, background=None, position=None,
-                    quality=None)
+        opts = dict(mode=None, filter=None, background=None, optimize=None,
+                    position=None, quality=None, progressive=None,
+                    preserve_exif=None)
         Image.validate_options(opts)
 
+    def test_nonimage_file(self):
+        with open(__file__, "rb") as f:
+            self.assertRaises(errors.ImageFormatError, Image, f)
+
     def test_bad_image_format(self):
-        path = os.path.join(DATADIR, "test-bad-format.gif")
+        path = os.path.join(DATADIR, "test-bad-format.ico")
         with open(path, "rb") as f:
             self.assertRaises(errors.ImageFormatError, Image, f)
 
@@ -235,6 +269,26 @@ class ImageTest(unittest.TestCase):
         self.assertRaises(
             errors.QualityError, Image.validate_options, dict(quality=-1))
 
+    def test_bad_optimize_invalid_bool(self):
+        self.assertRaises(
+            errors.OptimizeError, Image.validate_options, dict(optimize="b"))
+
+    def test_bad_preserve_exif_invalid_bool(self):
+        self.assertRaises(errors.PreserveExifError,
+                          Image.validate_options,
+                          dict(preserve_exif="b"))
+
+    def test_bad_progressive_invalid_bool(self):
+        self.assertRaises(errors.ProgressiveError,
+                          Image.validate_options,
+                          dict(progressive="b"))
+
+    def test_bad_retain_invalid_range(self):
+        self.assertRaises(
+            errors.RetainError, Image.validate_options, dict(retain=101))
+        self.assertRaises(
+            errors.RetainError, Image.validate_options, dict(retain=-1))
+
     def test_color_hex_to_dec_tuple(self):
         tests  = [["fff", (255, 255, 255)],
                   ["ccc", (204, 204, 204)],
@@ -255,14 +309,22 @@ class ImageTest(unittest.TestCase):
         for color in ["9", "99", "99999", "9999999", "999999999"]:
             self.assertRaises(AssertionError, color_hex_to_dec_tuple, color)
 
+    def test_save_failure(self):
+        img = Image(os.path.join(DATADIR, 'test5.gif'))
+        self.assertRaises(errors.ImageSaveError,
+                          lambda: img.save(format="webp"))
+
     def _assert_expected_resize(self, case):
         with open(case["source_path"], "rb") as f:
             img = Image(f).resize(
                 case["width"], case["height"], mode=case["mode"],
                 background=case.get("background"), filter=case.get("filter"),
-                position=case.get("position"))
+                position=case.get("position"), retain=case.get("retain"))
             rv = img.save(
-                format=case.get("format"), quality=case.get("quality"))
+                format=case.get("format"),
+                optimize=case.get("optimize"),
+                progressive=case.get("progressive"),
+                quality=case.get("quality"))
 
             with open(case["expected_path"], "rb") as expected:
                 msg = "%s does not match %s" \
@@ -276,25 +338,29 @@ class ImageTest(unittest.TestCase):
                 case["degree"], expand=case.get("expand"),
                 filter=case.get("filter"))
             rv = img.save(
-                format=case.get("format"), quality=case.get("quality"))
+                format=case.get("format"),
+                optimize=case.get("optimize"),
+                progressive=case.get("progressive"),
+                quality=case.get("quality"))
 
             with open(case["expected_path"], "rb") as expected:
                 msg = "%s does not match %s" \
                     % (case["source_path"], case["expected_path"])
                 self.assertEqual(rv.read(), expected.read(), msg)
-
 
     def _assert_expected_region(self, case):
         with open(case["source_path"], "rb") as f:
             img = Image(f).region(case["rect"].split(","))
             rv = img.save(
-                format=case.get("format"), quality=case.get("quality"))
+                format=case.get("format"),
+                optimize=case.get("optimize"),
+                progressive=case.get("progressive"),
+                quality=case.get("quality"))
 
             with open(case["expected_path"], "rb") as expected:
                 msg = "%s does not match %s" \
                     % (case["source_path"], case["expected_path"])
                 self.assertEqual(rv.read(), expected.read(), msg)
-
 
     def _assert_expected_chained(self, case):
         with open(case["source_path"], "rb") as f:
@@ -315,6 +381,16 @@ class ImageTest(unittest.TestCase):
                     % (case["source_path"], case["expected_path"])
                 self.assertEqual(rv.read(), expected.read(), msg)
 
+    def _assert_expected_exif(self, case):
+        with open(case["source_path"], "rb") as f:
+            img = Image(f).resize(case["width"], case["height"])
+            rv = img.save(preserve_exif=case['preserve_exif'])
+
+            with open(case["expected_path"], "rb") as expected:
+                msg = "%s does not match %s" \
+                    % (case["source_path"], case["expected_path"])
+                self.assertEqual(rv.read(), expected.read(), msg)
+
 
 def _get_simple_criteria_combinations():
     return _make_combinations(
@@ -325,7 +401,10 @@ def _get_simple_criteria_combinations():
 
 
 def _get_example_criteria_combinations():
-    return [dict(mode="clip", width=500, height=400),
+    return [dict(mode="adapt", width=500, height=400, retain=80),
+            dict(mode="adapt", width=500, height=400, retain=99,
+                 background="ccc"),
+            dict(mode="clip", width=500, height=400),
             dict(mode="crop", width=500, height=400),
             dict(mode="fill", width=500, height=400, background="ccc"),
             dict(mode="scale", width=500, height=400)]
@@ -333,7 +412,9 @@ def _get_example_criteria_combinations():
 
 def _get_advanced_criteria_combinations():
     return _make_combinations(
-        [dict(values=[["fill"], [(125, 75)], ["F00", "cccccc"]],
+        [dict(values=[["adapt"], [(125, 75)], [99, 80, 60, 40]],
+              fields=["mode", "size", "retain"]),
+         dict(values=[["fill"], [(125, 75)], ["F00", "cccccc"]],
               fields=["mode", "size", "background"]),
          dict(values=[["crop"], [(125, 75)], Image.POSITIONS],
               fields=["mode", "size", "position"]),
@@ -341,8 +422,12 @@ def _get_advanced_criteria_combinations():
               fields=["mode", "size", "position"]),
          dict(values=[["crop"], [(125, 75)], Image.FILTERS],
               fields=["mode", "size", "filter"]),
-         dict(values=[["crop"], [(125, 75)], [50, 75, 90]],
+         dict(values=[["crop"], [(125, 75)], [50, 75, 90, "keep"]],
               fields=["mode", "size", "quality"]),
+         dict(values=[["crop"], [(125, 75)], [1, 0]],
+              fields=["mode", "size", "optimize"]),
+         dict(values=[["crop"], [(125, 75)], [1, 0]],
+              fields=["mode", "size", "progressive"]),
          dict(values=[Image.MODES, [(125, None), (None, 125)]],
               fields=["mode", "size"]),
          dict(values=[["crop"], [(125, 75)], Image.FORMATS],
@@ -374,13 +459,15 @@ def _criteria_to_resize_case(filename, criteria):
         return None
     case = dict(source_path=os.path.join(DATADIR, filename))
     case.update(criteria)
-    fields = ["mode", "filter", "quality", "background", "position"]
-    opts = filter(bool, [criteria.get(x) for x in fields])
+    fields = ["mode", "filter", "quality", "background",
+              "position", "optimize", "progressive", "retain"]
+    opts_desc = "-".join(["%s=%s" % (x, str(criteria.get(x)))
+                          for x in fields if criteria.get(x)])
     expected = "%s-%sx%s%s.%s" \
         % (m.group(1),
            criteria.get("width") or "",
            criteria.get("height") or "",
-           ("-%s" % "-".join([str(x) for x in opts])) if opts else "",
+           ("-%s" % opts_desc) if opts_desc else "",
            criteria.get("format") or m.group(2))
     case["expected_path"] = os.path.join(EXPECTED_DATADIR, expected)
     return case
@@ -392,11 +479,12 @@ def _criteria_to_rotate_case(filename, criteria):
         return None
     case = dict(source_path=os.path.join(DATADIR, filename))
     case.update(criteria)
-    fields = ["degree", "quality", "expand"]
-    opts = filter(bool, [criteria.get(x) for x in fields])
+    fields = ["degree", "expand"]
+    opts_desc = "-".join(["%s=%s" % (x, str(criteria.get(x)))
+                          for x in fields if criteria.get(x)])
     expected = "%s-rotate%s.%s" \
         % (m.group(1),
-           ("-%s" % "-".join([str(x) for x in opts])) if opts else "",
+           ("-%s" % opts_desc) if opts_desc else "",
            criteria.get("format") or m.group(2))
     case["expected_path"] = os.path.join(EXPECTED_DATADIR, expected)
     return case
@@ -409,10 +497,11 @@ def _criteria_to_region_case(filename, criteria):
     case = dict(source_path=os.path.join(DATADIR, filename))
     case.update(criteria)
     fields = ["rect"]
-    opts = filter(bool, [criteria.get(x) for x in fields])
+    opts_desc = "-".join(["%s=%s" % (x, str(criteria.get(x)))
+                          for x in fields if criteria.get(x)])
     expected = "%s-region%s.%s" \
         % (m.group(1),
-           ("-%s" % "-".join([str(x) for x in opts])) if opts else "",
+           ("-%s" % opts_desc) if opts_desc else "",
            criteria.get("format") or m.group(2))
     case["expected_path"] = os.path.join(EXPECTED_DATADIR, expected)
     return case
@@ -425,13 +514,31 @@ def _criteria_to_chained_case(filename, criteria):
     case = dict(source_path=os.path.join(DATADIR, filename))
     case.update(criteria)
     fields = ["degree", "rect"]
-    opts = filter(bool, [criteria.get(x) for x in fields])
+    opts_desc = "-".join(["%s=%s" % (x, str(criteria.get(x)))
+                          for x in fields if criteria.get(x)])
     expected = "%s-chained-%s-%sx%s%s.%s" \
         % (m.group(1),
            ",".join(criteria.get("operation", [])),
            criteria.get("width") or "",
            criteria.get("height") or "",
-           ("-%s" % "-".join([str(x) for x in opts])) if opts else "",
+           ("-%s" % opts_desc) if opts_desc else "",
+           m.group(2))
+    case["expected_path"] = os.path.join(EXPECTED_DATADIR, expected)
+    return case
+
+
+def _criteria_to_exif_case(filename, criteria):
+    m = re.match(r"^([^\.]+)\.([^\.]+)$", filename)
+    if not m:
+        return None
+    case = dict(source_path=os.path.join(DATADIR, filename))
+    case.update(criteria)
+    fields = ["preserve_exif"]
+    opts_desc = "-".join(["%s=%s" % (x, str(criteria.get(x)))
+                          for x in fields if criteria.get(x) is not None])
+    expected = "%s-exif-%s.%s" \
+        % (m.group(1),
+           opts_desc or "",
            m.group(2))
     case["expected_path"] = os.path.join(EXPECTED_DATADIR, expected)
     return case

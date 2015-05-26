@@ -21,8 +21,8 @@ class PilboxTest(Command):
 
 
 setup(name='pilbox',
-      version='0.9.15',
-      description='Pilbox is an image resizing application server built on the Tornado web framework using the Pillow Imaging Library',
+      version='1.1.9',
+      description='Pilbox is an image processing application server built on the Tornado web framework using the Pillow Imaging Library',
       long_description=readme,
       classifiers=[
         'License :: OSI Approved :: Apache Software License',
@@ -43,10 +43,15 @@ setup(name='pilbox',
         'pilbox': ['frontalface.xml'],
         },
       install_requires=[
-        'tornado==3.1.1',
-        'Pillow==2.2.1',
+        'tornado==4.0.2',
+        'Pillow==2.8.1',
         'sphinx-me==0.2.1',
         ],
+      extras_require = {
+          'Proxy': ['pycurl'],
+          'Facial Recognition': ['cv']
+      },
       zip_safe=True,
-      cmdclass={'test': PilboxTest}
+      cmdclass={'test': PilboxTest},
+      entry_points = {'console_scripts': ['pilbox = pilbox.app:main']}
       )

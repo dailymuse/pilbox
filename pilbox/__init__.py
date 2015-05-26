@@ -47,13 +47,34 @@ Versions:
   * 0.9.10: Converted README to reStructuredText
   * 0.9.14: Added Sphinx docs
   * 0.9.15: Added implicit base url
+  * 0.9.16: Added validate cert to configuration
+  * 0.9.17: Added support for GIF format
+  * 0.9.18: Fix for travis builds on python 2.6 and 3.3
+  * 0.9.19: Validate cert fix
+  * 0.9.20: Added optimize option
+  * 0.9.21: Added console script entry point
+  * 1.0.0: Modified for easier library usage
+  * 1.0.1: Added allowed operations and default operation
+  * 1.0.2: Modified to allow override of http content type
+  * 1.0.3: Safely catch image save errors
+  * 1.0.4: Added progressive option
+  * 1.1.0: Proxy server support
+  * 1.1.1: Added JPEG auto rotation based on Exif orientation
+  * 1.1.2: Added keep JPEG quality option and set JPEG subsampling to keep
+  * 1.1.3: Fix auto rotation on JPEG with missing Exif data
+  * 1.1.4: Exception handling around invalid Exif data
+  * 1.1.5: Fix for images requests without content types
+  * 1.1.6: Support custom applications that need command line arguments
+  * 1.1.7: Support adapt resize mode
+  * 1.1.8: Add preserve Exif flag
+  * 1.1.9: Increase Pillow version to 2.8.1
 """
 
 # human-readable version number
-version = "0.9.15"
+version = "1.1.9"
 
 # The first three numbers are the components of the version number.
 # The fourth is zero for an official release, positive for a development
 # branch, or negative for a release candidate or beta (after the base version
 # number has been incremented)
-version_info = (0, 9, 15, 0)
+version_info = (1, 1, 9, 0)
