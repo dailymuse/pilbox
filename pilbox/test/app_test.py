@@ -336,6 +336,7 @@ class AppTest(AsyncHTTPTestCase, _AppAsyncMixin):
         resp = self.fetch_error(404, "/?%s" % qs)
         self.assertEqual(resp.get("error_code"), errors.FetchError.get_code())
 
+    @unittest.skip("Skip unreliable test")
     def test_not_connect(self):
         qs = urlencode(dict(url="http://a.com/a.jpg", w=1, h=1))
         resp = self.fetch_error(404, "/?%s" % qs)
