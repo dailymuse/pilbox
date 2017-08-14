@@ -138,7 +138,7 @@ class PilboxApplication(tornado.web.Application):
         tornado.web.Application.__init__(self, self.get_handlers(), **settings)
 
     def get_handlers(self):
-        return [(r"/", ImageHandler)]
+        return [(r"/.*", ImageHandler)]
 
 
 class ImageHandler(tornado.web.RequestHandler):
