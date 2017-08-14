@@ -138,7 +138,7 @@ class PilboxApplication(tornado.web.Application):
         tornado.web.Application.__init__(self, self.get_handlers(), **settings)
 
     def get_handlers(self):
-        return [(r"/(.*)", ImageHandler)]
+        return [(r"/", ImageHandler)]
 
 
 class ImageHandler(tornado.web.RequestHandler):
@@ -155,8 +155,7 @@ class ImageHandler(tornado.web.RequestHandler):
     }
 
     @tornado.gen.coroutine
-    def get(self, url):
-        self.url = url or self.get_argument("url")
+    def get(self):
         self.validate_request()
         resp = yield self.fetch_image()
         self.render_image(resp)
@@ -191,15 +190,16 @@ class ImageHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def fetch_image(self):
+        url = self.get_argument("url")
         if self.settings.get("implicit_base_url") \
-                and urlparse(self.url).hostname is None:
-            self.url = urljoin(self.settings.get("implicit_base_url"), self.url)
+                and urlparse(url).hostname is None:
+            url = urljoin(self.settings.get("implicit_base_url"), url)
 
         client = tornado.httpclient.AsyncHTTPClient(
             max_clients=self.settings.get("max_requests"))
         try:
             resp = yield client.fetch(
-                self.url,
+                url,
                 request_timeout=self.settings.get("timeout"),
                 ca_certs=self.settings.get("ca_certs"),
                 validate_cert=self.settings.get("validate_cert"),
@@ -209,7 +209,7 @@ class ImageHandler(tornado.web.RequestHandler):
             raise tornado.gen.Return(resp)
         except (socket.gaierror, tornado.httpclient.HTTPError) as e:
             logger.warn("Fetch error for %s: %s",
-                        self.url,
+                        self.get_argument("url"),
                         str(e))
             raise errors.FetchError()
 
@@ -314,11 +314,12 @@ class ImageHandler(tornado.web.RequestHandler):
             raise errors.OperationError("Too many operations")
 
     def _validate_url(self):
-        if not self.url:
+        url = self.get_argument("url")
+        if not url:
             raise errors.UrlError("Missing url")
-        elif self.url.startswith("http://") or self.url.startswith("https://"):
+        elif url.startswith("http://") or url.startswith("https://"):
             return
-        elif self.settings.get("implicit_base_url") and self.url.startswith("/"):
+        elif self.settings.get("implicit_base_url") and url.startswith("/"):
             return
         raise errors.UrlError("Unsupported protocol")
 
@@ -334,7 +335,7 @@ class ImageHandler(tornado.web.RequestHandler):
 
     def _validate_host(self):
         hosts = self.settings.get("allowed_hosts", [])
-        if hosts and urlparse(self.url).hostname not in hosts:
+        if hosts and urlparse(self.get_argument("url")).hostname not in hosts:
             raise errors.HostError("Invalid host")
 
 
