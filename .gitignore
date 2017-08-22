@@ -6,6 +6,7 @@ vagrant_ansible_inventory_default
 *.pyc
 /*.egg-info
 /dist/
+venv/
 
 # Coverage
 .coverage
