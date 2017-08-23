@@ -1,0 +1,16 @@
+machine:
+    timezone:
+        America/New_York
+    python:
+        version:
+            2.7.12
+
+dependencies:
+    pre:
+        - sudo apt-get update
+        - sudo apt-get install python-dev python-numpy python-opencv libwebp-dev
+
+test:
+    override:
+        - python -m pilbox.test.runtests
+
