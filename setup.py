@@ -44,7 +44,10 @@ setup(name='pilbox',
         },
       install_requires=[
         'tornado==4.5.1',
-        'Pillow==2.9.0'
+        'Pillow==2.9.0',
+        "mem_top",
+        "memory_profiler",
+        "psutil"
         ],
       extras_require = {
           'Proxy': ['pycurl'],

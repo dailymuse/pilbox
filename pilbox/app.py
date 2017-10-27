@@ -19,6 +19,9 @@ from __future__ import absolute_import, division, with_statement
 import logging
 import socket
 
+from mem_top import mem_top
+from memory_profiler import profile
+
 import tornado.escape
 import tornado.gen
 import tornado.httpclient
@@ -155,7 +158,9 @@ class ImageHandler(tornado.web.RequestHandler):
     }
 
     @tornado.gen.coroutine
+    @profile
     def get(self):
+        print(mem_top())
         self.validate_request()
         resp = yield self.fetch_image()
         self.render_image(resp)
@@ -163,6 +168,7 @@ class ImageHandler(tornado.web.RequestHandler):
     def get_argument(self, name, default=None, strip=True):
         return super(ImageHandler, self).get_argument(name, default, strip)
 
+    @profile
     def validate_request(self):
         self._validate_operation()
         self._validate_url()
@@ -189,6 +195,7 @@ class ImageHandler(tornado.web.RequestHandler):
         Image.validate_options(opts)
 
     @tornado.gen.coroutine
+    @profile
     def fetch_image(self):
         url = self.get_argument("url")
         if self.settings.get("implicit_base_url") \
@@ -213,6 +220,7 @@ class ImageHandler(tornado.web.RequestHandler):
                         str(e))
             raise errors.FetchError()
 
+    @profile
     def render_image(self, resp):
         outfile, outfile_format = self._process_response(resp)
         self._set_headers(resp.headers, outfile_format)
@@ -231,6 +239,7 @@ class ImageHandler(tornado.web.RequestHandler):
         else:
             super(ImageHandler, self).write_error(status_code, **kwargs)
 
+    @profile
     def _process_response(self, resp):
         ops = self._get_operations()
         if "noop" in ops:
@@ -250,6 +259,7 @@ class ImageHandler(tornado.web.RequestHandler):
     def _image_region(self, image):
         image.region(self.get_argument("rect").split(","))
 
+    @profile
     def _image_resize(self, image):
         opts = self._get_resize_options()
         image.resize(self.get_argument("w"), self.get_argument("h"), **opts)
@@ -258,6 +268,7 @@ class ImageHandler(tornado.web.RequestHandler):
         opts = self._get_rotate_options()
         image.rotate(self.get_argument("deg"), **opts)
 
+    @profile
     def _image_save(self, image):
         opts = self._get_save_options()
         return image.save(**opts)
