@@ -254,7 +254,9 @@ class ImageHandler(tornado.web.RequestHandler):
             elif operation == "region":
                 self._image_region(image)
 
-        return (self._image_save(image), image.img.format)
+        retval = (self._image_save(image), image.img.format)
+        del image
+        return retval
 
     def _image_region(self, image):
         image.region(self.get_argument("rect").split(","))
