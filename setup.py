@@ -21,17 +21,12 @@ class PilboxTest(Command):
 
 
 setup(name='pilbox',
-      version='1.3.0',
+      version='2.0.0',
       description='Pilbox is an image processing application server built on the Tornado web framework using the Pillow Imaging Library',
       long_description=readme,
       classifiers=[
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.6',
         ],
       url='https://github.com/agschwender/pilbox',
       author='Adam Gschwender',
@@ -44,7 +39,8 @@ setup(name='pilbox',
         },
       install_requires=[
         'tornado==4.5.1',
-        'Pillow==2.9.0'
+        'Pillow==2.9.0',
+        'muselog>=1.1.1'
         ],
       extras_require = {
           'Proxy': ['pycurl'],

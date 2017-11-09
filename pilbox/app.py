@@ -89,7 +89,8 @@ define("quality", help="default jpeg quality, 1-99 or keep")
 define("retain", help="default adaptive retain percent, 1-99", type=int)
 define("preserve_exif", help="default behavior for exif data", type=int)
 
-logger = logging.getLogger("tornado.application")
+
+logger = logging.getLogger(__name__)
 
 
 class PilboxApplication(tornado.web.Application):
@@ -209,7 +210,7 @@ class ImageHandler(tornado.web.RequestHandler):
             raise tornado.gen.Return(resp)
         except (socket.gaierror, tornado.httpclient.HTTPError) as e:
             logger.warn("Fetch error for %s: %s",
-                        self.get_argument("url"),
+                        url,
                         str(e))
             raise errors.FetchError()
 

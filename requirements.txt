@@ -1,0 +1,6 @@
+tornado==4.5.1
+Pillow==2.9.0
+coveralls
+
+-e git+git://github.com/dailymuse/pygelf.git@0.4.1#egg=pygelf
+-e git+git://github.com/dailymuse/muselog.git@1.1.1#egg=muselog
