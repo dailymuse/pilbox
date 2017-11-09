@@ -209,7 +209,7 @@ class ImageHandler(tornado.web.RequestHandler):
             raise tornado.gen.Return(resp)
         except (socket.gaierror, tornado.httpclient.HTTPError) as e:
             logger.warn("Fetch error for %s: %s",
-                        self.get_argument("url"),
+                        url,
                         str(e))
             raise errors.FetchError()
 
