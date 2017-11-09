@@ -80,6 +80,10 @@ Versions:
   * 1.3.0: Increased Pillow to 2.9.0 and Tornado to 4.5.1
 """
 
+import os
+
+import muselog
+
 # human-readable version number
 version = "1.3.0"
 
@@ -87,4 +91,9 @@ version = "1.3.0"
 # The fourth is zero for an official release, positive for a development
 # branch, or negative for a release candidate or beta (after the base version
 # number has been incremented)
-version_info = (1, 3, 0, 0)
+version_info = (2, 0, 0, 0)
+
+
+muselog.setup_logging(root_log_level=os.environ.get("LOG_LEVEL", "INFO"),
+                      module_log_levels={"pilbox": os.environ.get("THEMUSE_LOG_LEVEL", "INFO")},
+                      console_handler_format=os.environ.get("LOG_FORMAT"))

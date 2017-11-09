@@ -36,7 +36,7 @@ try:
 except ImportError:
     cv = None
 
-logger = logging.getLogger("tornado.application")
+logger = logging.getLogger(__name__)
 
 _positions_to_ratios = {
     "top-left": (0.0, 0.0), "top": (0.5, 0.0), "top-right": (1.0, 0.0),

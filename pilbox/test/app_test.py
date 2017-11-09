@@ -38,7 +38,7 @@ except ImportError:
     pycurl = None
 
 
-logger = logging.getLogger("tornado.application")
+logger = logging.getLogger(__name__)
 
 
 class _AppAsyncMixin(object):
@@ -600,9 +600,9 @@ class AppUserAgentTest(AsyncHTTPTestCase, _AppAsyncMixin):
     def test_incorrect_user_agent(self):
         url = self.get_url("/test/data/test-user-agent.jpg?ua=bar")
         qs = urlencode(dict(url=url, w=1, h=1))
-        resp = self.fetch_error(404, "/?%s" % qs)
+        self.fetch_error(404, "/?%s" % qs)
 
     def test_correct_user_agent(self):
         url = self.get_url("/test/data/test-user-agent.jpg?ua=%s" % AppUserAgentTest.ua)
         qs = urlencode(dict(url=url, w=1, h=1))
-        resp = self.fetch_success("/?%s" % qs)
+        self.fetch_success("/?%s" % qs)

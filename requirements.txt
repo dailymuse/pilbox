@@ -1,0 +1,2 @@
+-e git+git://github.com/dailymuse/pygelf.git@0.4.1#egg=pygelf
+-e git+git://github.com/dailymuse/muselog.git@1.1.1#egg=muselog
