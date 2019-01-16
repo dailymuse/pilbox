@@ -1,0 +1,16 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.2
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update && sudo apt-get install -y python-dev python-numpy python-opencv libwebp-dev
+            sudo pip install -r requirements.txt
+            sudo python setup.py install
+      - run:
+          name: Test
+          command: sudo python -m pilbox.test.runtests
