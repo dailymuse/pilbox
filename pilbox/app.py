@@ -74,6 +74,10 @@ define("user_agent", help="user agent", type=str)
 define("content_type_from_image",
        help="override content type using image mime type",
        type=bool)
+define("not_found_cache_max_age",
+       help="how long (in seconds) client should cache a 404 response from pilbox",
+       type=int,
+       default=60)
 
 # default image option settings
 define("background", help="default hexadecimal bg color (RGB or ARGB)")
@@ -123,6 +127,7 @@ class PilboxApplication(tornado.web.Application):
             user_agent=options.user_agent,
             validate_cert=options.validate_cert,
             content_type_from_image=options.content_type_from_image,
+            not_found_cache_max_age=options.not_found_cache_max_age,
             proxy_host=options.proxy_host,
             proxy_port=options.proxy_port,
             preserve_exif=options.preserve_exif)
@@ -222,6 +227,12 @@ class ImageHandler(tornado.web.RequestHandler):
         outfile.close()
 
     def write_error(self, status_code, **kwargs):
+        # Ensure we do not forward cache headers for an error
+        self.clear_header("Cache-Control")
+        self.clear_header("Expires")
+        if status_code == 404:
+            # If the image has not been found, we are okay caching for a short period of time.
+            self.set_header("Cache-Control", "public, max-age=%d" % self.settings["not_found_cache_max_age"])
         err = kwargs["exc_info"][1] if "exc_info" in kwargs else None
         if isinstance(err, errors.PilboxError):
             self.set_header("Content-Type", "application/json")
