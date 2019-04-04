@@ -28,6 +28,8 @@ import tornado.options
 import tornado.web
 from tornado.options import define, options, parse_config_file
 
+import muselog.tornado
+
 from pilbox import errors
 from pilbox.image import Image
 from pilbox.signature import verify_signature
@@ -130,7 +132,9 @@ class PilboxApplication(tornado.web.Application):
             not_found_cache_max_age=options.not_found_cache_max_age,
             proxy_host=options.proxy_host,
             proxy_port=options.proxy_port,
-            preserve_exif=options.preserve_exif)
+            preserve_exif=options.preserve_exif,
+            log_function=muselog.tornado.log_request
+        )
 
         settings.update(kwargs)
 

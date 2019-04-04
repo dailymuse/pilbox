@@ -3,4 +3,4 @@ Pillow==2.9.0
 coveralls
 
 -e git+git://github.com/dailymuse/pygelf.git@0.4.1#egg=pygelf
--e git+git://github.com/dailymuse/muselog.git@1.2.0#egg=muselog
+-e git+git://github.com/dailymuse/muselog.git@1.7.0#egg=muselog

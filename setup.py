@@ -21,7 +21,7 @@ class PilboxTest(Command):
 
 
 setup(name='pilbox',
-      version='2.1.1',
+      version='2.1.2',
       description='Pilbox is an image processing application server built on the Tornado web framework using the Pillow Imaging Library',
       long_description=readme,
       classifiers=[
@@ -40,7 +40,7 @@ setup(name='pilbox',
       install_requires=[
         'tornado==4.5.1',
         'Pillow==2.9.0',
-        'muselog>=1.1.1'
+        'muselog>=1.6.2'
         ],
       extras_require = {
           'Proxy': ['pycurl'],
