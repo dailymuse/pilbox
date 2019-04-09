@@ -85,13 +85,13 @@ import os
 import muselog
 
 # human-readable version number
-version = "2.1.0"
+version = "2.1.3"
 
 # The first three numbers are the components of the version number.
 # The fourth is zero for an official release, positive for a development
 # branch, or negative for a release candidate or beta (after the base version
 # number has been incremented)
-version_info = (2, 1, 0, 0)
+version_info = (2, 1, 3, 0)
 
 
 muselog.setup_logging(root_log_level=os.environ.get("LOG_LEVEL", "INFO"),
