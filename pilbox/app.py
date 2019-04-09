@@ -29,6 +29,7 @@ import tornado.web
 from tornado.options import define, options, parse_config_file
 
 import muselog.tornado
+from muselog.tornado import ExceptionLogger
 
 from pilbox import errors
 from pilbox.image import Image
@@ -151,7 +152,7 @@ class PilboxApplication(tornado.web.Application):
         return [(r"/.*", ImageHandler)]
 
 
-class ImageHandler(tornado.web.RequestHandler):
+class ImageHandler(ExceptionLogger, tornado.web.RequestHandler):
     FORWARD_HEADERS = ["Cache-Control", "Expires", "Last-Modified"]
     OPERATIONS = ["region", "resize", "rotate", "noop"]
 
